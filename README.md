@@ -1,5 +1,5 @@
 ``在原作者上改编，兼容网格
-![效果图](https://github.com/donkingliang/LabelsView/blob/master/%E6%95%88%E6%9E%9C%E5%9B%BE.gif)  
+![效果图](https://github.com/Congx/LabelsView/blob/master/%E6%96%B0%E5%A2%9E%E6%A8%A1%E5%BC%8F.png)  
 
 =====
 LabelsView
