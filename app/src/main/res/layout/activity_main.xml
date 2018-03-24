@@ -98,4 +98,10 @@
         app:maxSelect="0"
         app:selectType="SINGLE"
         app:wordMargin="10dp" />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="跳转"
+        android:onClick="start"/>
 </LinearLayout>

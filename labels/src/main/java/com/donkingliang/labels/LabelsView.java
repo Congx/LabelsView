@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.os.Parcelable;
 import android.util.AttributeSet;
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -38,6 +39,9 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
     private ArrayList<Object> mLabels = new ArrayList<>();
     //保存选中的label的位置
     private ArrayList<Integer> mSelectLabels = new ArrayList<>();
+
+    // 修改后的兼容网格模式，固定的列数，大于0自动选择网格模式
+    private int rowNum = 0;
 
     //保存必选项。在多选模式下，可以设置必选项，必选项默认选中，不能反选
     private ArrayList<Integer> mCompulsorys = new ArrayList<>();
@@ -133,32 +137,69 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
         int maxItemHeight = 0; //记录一行中item高度最大的高度
         boolean begin = true; //是否是行的开头
 
-        for (int i = 0; i < count; i++) {
-            View view = getChildAt(i);
-            measureChild(view, widthMeasureSpec, heightMeasureSpec);
+        // 原来作者的逻辑
+        if (rowNum <= 0) {
+            for (int i = 0; i < count; i++) {
+                View view = getChildAt(i);
+                measureChild(view, widthMeasureSpec, heightMeasureSpec);
 
-            if (maxWidth < lineWidth + view.getMeasuredWidth()) {
-                contentHeight += mLineMargin;
-                contentHeight += maxItemHeight;
-                maxItemHeight = 0;
-                maxLineWidth = Math.max(maxLineWidth, lineWidth);
-                lineWidth = 0;
-                begin = true;
+                if (maxWidth < lineWidth + view.getMeasuredWidth()) {
+                    contentHeight += mLineMargin;
+                    contentHeight += maxItemHeight;
+                    maxItemHeight = 0;
+                    maxLineWidth = Math.max(maxLineWidth, lineWidth);
+                    lineWidth = 0;
+                    begin = true;
+                }
+                maxItemHeight = Math.max(maxItemHeight, view.getMeasuredHeight());
+                if (!begin) {
+                    lineWidth += mWordMargin;
+                } else {
+                    begin = false;
+                }
+                lineWidth += view.getMeasuredWidth();
             }
-            maxItemHeight = Math.max(maxItemHeight, view.getMeasuredHeight());
-            if (!begin) {
-                lineWidth += mWordMargin;
-            } else {
-                begin = false;
+
+            contentHeight += maxItemHeight;
+            maxLineWidth = Math.max(maxLineWidth, lineWidth);
+
+            setMeasuredDimension(measureWidth(widthMeasureSpec, maxLineWidth),
+                    measureHeight(heightMeasureSpec, contentHeight));
+        } else {
+            // 为了修改适应 gridView 的网格效果
+            int index = 0;//记录第几列
+            int itemWidth = 0; // 每个item的宽度
+            int rowWidth = maxWidth / rowNum; // 每一列均分
+
+            for (int i = 0; i < count; i++) {
+                View view = getChildAt(i);
+                index = i % rowNum;
+                itemWidth = rowWidth - mWordMargin * 2;
+//                measureChild(view, MeasureSpec.makeMeasureSpec(itemWidth,MeasureSpec.EXACTLY), heightMeasureSpec);
+                view.measure(MeasureSpec.makeMeasureSpec(itemWidth, MeasureSpec.EXACTLY), heightMeasureSpec);
+                if (index == 0) {
+                    contentHeight += mLineMargin;
+                    contentHeight += maxItemHeight;
+                    maxItemHeight = 0;
+                    maxLineWidth = Math.max(maxLineWidth, lineWidth);
+                    begin = true;
+                }
+                maxItemHeight = Math.max(maxItemHeight, view.getMeasuredHeight());
+                if (!begin) {
+                    lineWidth += mWordMargin;
+                } else {
+                    begin = false;
+                }
+                lineWidth += view.getMeasuredWidth();
             }
-            lineWidth += view.getMeasuredWidth();
+
+            contentHeight += maxItemHeight;
+            maxLineWidth = maxWidth;
+
+            setMeasuredDimension(measureWidth(widthMeasureSpec, maxLineWidth),
+                    measureHeight(heightMeasureSpec, contentHeight));
         }
 
-        contentHeight += maxItemHeight;
-        maxLineWidth = Math.max(maxLineWidth, lineWidth);
-
-        setMeasuredDimension(measureWidth(widthMeasureSpec, maxLineWidth),
-                measureHeight(heightMeasureSpec, contentHeight));
     }
 
     private int measureWidth(int measureSpec, int contentWidth) {
@@ -197,7 +238,6 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
 
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
-
         int x = getPaddingLeft();
         int y = getPaddingTop();
 
@@ -205,21 +245,45 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
         int maxItemHeight = 0;
 
         int count = getChildCount();
-        for (int i = 0; i < count; i++) {
-            View view = getChildAt(i);
 
-            if (contentWidth < x + view.getMeasuredWidth() + getPaddingRight()) {
-                x = getPaddingLeft();
-                y += mLineMargin;
-                y += maxItemHeight;
-                maxItemHeight = 0;
+        if (rowNum <= 0) {
+
+            for (int i = 0; i < count; i++) {
+                View view = getChildAt(i);
+
+                if (contentWidth < x + view.getMeasuredWidth() + getPaddingRight()) {
+                    x = getPaddingLeft();
+                    y += mLineMargin;
+                    y += maxItemHeight;
+                    maxItemHeight = 0;
+                }
+                view.layout(x, y, x + view.getMeasuredWidth(), y + view.getMeasuredHeight());
+                x += view.getMeasuredWidth();
+                x += mWordMargin;
+                maxItemHeight = Math.max(maxItemHeight, view.getMeasuredHeight());
             }
-            view.layout(x, y, x + view.getMeasuredWidth(), y + view.getMeasuredHeight());
-            x += view.getMeasuredWidth();
-            x += mWordMargin;
-            maxItemHeight = Math.max(maxItemHeight, view.getMeasuredHeight());
+        } else {
+            x = getPaddingLeft() + mWordMargin;
+            // 为了修改适应 gridView 的网格效果
+            int index = 0;//记录第几列
+            int rowWidth = getWidth() / rowNum; // 每一列均分
+            for (int i = 0; i < count; i++) {
+                View view = getChildAt(i);
+                index = i % rowNum;
+                if (index == 0) {
+                    x = getPaddingLeft() + mWordMargin;
+                    y += mLineMargin;
+                    y += maxItemHeight;
+                    maxItemHeight = 0;
+                }
+                view.layout(x, y, x + view.getMeasuredWidth(), y + view.getMeasuredHeight());
+                x = rowWidth * (index + 1) + mWordMargin;
+                maxItemHeight = Math.max(maxItemHeight, view.getMeasuredHeight());
+            }
         }
+
     }
+
 
     /*  用于保存View的信息的key  */
     private static final String KEY_SUPER_STATE = "key_super_state";
@@ -353,11 +417,12 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
 
     /**
      * 设置标签列表，标签列表的数据可以是任何类型的数据，它最终显示的内容由LabelTextProvider根据标签的数据提供。
+     *
      * @param labels
      * @param provider
      * @param <T>
      */
-    public <T> void setLabels(List<T> labels,LabelTextProvider<T> provider){
+    public <T> void setLabels(List<T> labels, LabelTextProvider<T> provider) {
         //清空原有的标签
         innerClearAllSelect();
         removeAllViews();
@@ -367,7 +432,7 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
             mLabels.addAll(labels);
             int size = labels.size();
             for (int i = 0; i < size; i++) {
-                addLabel(labels.get(i), i,provider);
+                addLabel(labels.get(i), i, provider);
             }
         }
 
@@ -385,7 +450,7 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
         return (List<T>) mLabels;
     }
 
-    private <T> void addLabel(T data, int position,LabelTextProvider<T> provider) {
+    private <T> void addLabel(T data, int position, LabelTextProvider<T> provider) {
         final TextView label = new TextView(mContext);
         label.setPadding(mTextPaddingLeft, mTextPaddingTop, mTextPaddingRight, mTextPaddingBottom);
         label.setTextSize(TypedValue.COMPLEX_UNIT_PX, mTextSize);
@@ -393,12 +458,13 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
         if (mLabelBgResId != 0) {
             label.setBackgroundResource(mLabelBgResId);
         }
+        label.setGravity(Gravity.CENTER);
         //label通过tag保存自己的数据(data)和位置(position)
-        label.setTag(KEY_DATA,data);
-        label.setTag(KEY_POSITION,position);
+        label.setTag(KEY_DATA, data);
+        label.setTag(KEY_POSITION, position);
         label.setOnClickListener(this);
         addView(label);
-        label.setText(provider.getLabelText(label,position,data));
+        label.setText(provider.getLabelText(label, position, data));
     }
 
     @Override
@@ -524,6 +590,22 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
         }
     }
 
+
+    /**
+     * @return
+     */
+    public int getRowNum() {
+        return rowNum;
+    }
+
+    /**
+     * 兼容网格模式
+     * @param rowNum
+     */
+    public void setRowNum(int rowNum) {
+        this.rowNum = rowNum;
+    }
+
     /**
      * 设置必选项，只有在多项模式下，这个方法才有效
      *
@@ -585,16 +667,17 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
 
     /**
      * 获取选中的label(返回的是所头选中的标签的数据)
+     *
      * @param <T>
      * @return
      */
-    public <T> List<T> getSelectLabelDatas(){
+    public <T> List<T> getSelectLabelDatas() {
         List<T> list = new ArrayList<>();
         int size = mSelectLabels.size();
-        for (int i = 0;i < size;i++){
+        for (int i = 0; i < size; i++) {
             View label = getChildAt(mSelectLabels.get(i));
             Object data = label.getTag(KEY_DATA);
-            if (data != null){
+            if (data != null) {
                 list.add((T) data);
             }
         }
@@ -669,6 +752,19 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
                 TextView label = (TextView) getChildAt(i);
                 label.setTextSize(TypedValue.COMPLEX_UNIT_PX, size);
             }
+        }
+    }
+
+    /**
+     * 设置标签的文字位置
+     *
+     * @param gravity
+     */
+    public void setLabelTextGravity(int gravity) {
+        int count = getChildCount();
+        for (int i = 0; i < count; i++) {
+            TextView label = (TextView) getChildAt(i);
+            label.setGravity(Gravity.CENTER);
         }
     }
 
@@ -804,9 +900,8 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
     public interface OnLabelClickListener {
 
         /**
-         *
-         * @param label 标签
-         * @param data 标签对应的数据
+         * @param label    标签
+         * @param data     标签对应的数据
          * @param position 标签位置
          */
         void onLabelClick(TextView label, Object data, int position);
@@ -815,9 +910,8 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
     public interface OnLabelSelectChangeListener {
 
         /**
-         *
-         * @param label 标签
-         * @param data 标签对应的数据
+         * @param label    标签
+         * @param data     标签对应的数据
          * @param isSelect 是否选中
          * @param position 标签位置
          */
@@ -831,16 +925,17 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
      *
      * @param <T>
      */
-    public interface LabelTextProvider<T>{
+    public interface LabelTextProvider<T> {
 
         /**
          * 根据data和position返回label需要需要显示的数据。
+         *
          * @param label
          * @param position
          * @param data
          * @return
          */
-        CharSequence getLabelText(TextView label,int position,T data);
+        CharSequence getLabelText(TextView label, int position, T data);
     }
 
 }

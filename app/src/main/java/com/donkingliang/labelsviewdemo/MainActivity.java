@@ -1,5 +1,6 @@
 package com.donkingliang.labelsviewdemo;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -61,6 +62,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
 
+        // 新的模式，可选
+        labelsView.setRowNum(4);
+
         findViewById(R.id.btn_none).setOnClickListener(this);
         findViewById(R.id.btn_single).setOnClickListener(this);
         findViewById(R.id.btn_multi).setOnClickListener(this);
@@ -119,4 +123,5 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
         }
     }
+
 }
