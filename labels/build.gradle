@@ -5,7 +5,7 @@ group='com.github.donkingliang' // 指定group，com.github.<用户名>
 
 android {
     compileSdkVersion 23
-    buildToolsVersion "23.0.3"
+    buildToolsVersion '26.0.2'
 
     defaultConfig {
         minSdkVersion 9

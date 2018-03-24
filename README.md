@@ -1,3 +1,7 @@
+``在原作者上改编，兼容网格
+![效果图](https://github.com/donkingliang/LabelsView/blob/master/%E6%95%88%E6%9E%9C%E5%9B%BE.gif)  
+
+=====
 LabelsView
 ======
 标签列表控件的使用介绍。
@@ -181,7 +185,7 @@ public void setLineMargin(int margin);
 public void setWordMargin(int margin);
 ```
 所有的set方法都有对应的get方法，这里就不说了。
-
+_``_
 ### 效果图：
 ![效果图](https://github.com/donkingliang/LabelsView/blob/master/%E6%95%88%E6%9E%9C%E5%9B%BE.gif)  
 想要了解该控件的具体实现的同学，欢迎访问[我的博客](http://blog.csdn.net/u010177022)  
