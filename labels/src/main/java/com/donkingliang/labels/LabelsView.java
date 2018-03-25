@@ -12,6 +12,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,7 +21,7 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
 
     private Context mContext;
 
-    private ColorStateList mTextColor;
+    private ColorStateList mTextColorList;
     private float mTextSize;
     private int mLabelBgResId;
     private int mTextPaddingLeft;
@@ -39,6 +41,10 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
     private ArrayList<Object> mLabels = new ArrayList<>();
     //保存选中的label的位置
     private ArrayList<Integer> mSelectLabels = new ArrayList<>();
+
+    //保存不可点击lable位置
+    private ArrayList<TextView> mEnableLabels = new ArrayList<>();
+
 
     // 修改后的兼容网格模式，固定的列数，大于0自动选择网格模式
     private int rowNum = 0;
@@ -107,7 +113,7 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
             mSelectType = SelectType.get(type);
 
             mMaxSelect = mTypedArray.getInteger(R.styleable.labels_view_maxSelect, 0);
-            mTextColor = mTypedArray.getColorStateList(R.styleable.labels_view_labelTextColor);
+            mTextColorList = mTypedArray.getColorStateList(R.styleable.labels_view_labelTextColor);
             mTextSize = mTypedArray.getDimension(R.styleable.labels_view_labelTextSize,
                     sp2px(context, 14));
             mTextPaddingLeft = mTypedArray.getDimensionPixelOffset(
@@ -309,8 +315,8 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
         //保存父类的信息
         bundle.putParcelable(KEY_SUPER_STATE, super.onSaveInstanceState());
         //保存标签文字颜色
-        if (mTextColor != null) {
-            bundle.putParcelable(KEY_TEXT_COLOR_STATE, mTextColor);
+        if (mTextColorList != null) {
+            bundle.putParcelable(KEY_TEXT_COLOR_STATE, mTextColorList);
         }
         //保存标签文字大小
         bundle.putFloat(KEY_TEXT_SIZE_STATE, mTextSize);
@@ -454,7 +460,7 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
         final TextView label = new TextView(mContext);
         label.setPadding(mTextPaddingLeft, mTextPaddingTop, mTextPaddingRight, mTextPaddingBottom);
         label.setTextSize(TypedValue.COMPLEX_UNIT_PX, mTextSize);
-        label.setTextColor(mTextColor != null ? mTextColor : ColorStateList.valueOf(0xFF000000));
+        label.setTextColor(mTextColorList != null ? mTextColorList : ColorStateList.valueOf(0xFF000000));
         if (mLabelBgResId != 0) {
             label.setBackgroundResource(mLabelBgResId);
         }
@@ -470,6 +476,9 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
     @Override
     public void onClick(View v) {
         if (v instanceof TextView) {
+            if(mEnableLabels.contains(v)) {
+                return;
+            }
             TextView label = (TextView) v;
             if (mSelectType != SelectType.NONE) {
                 if (label.isSelected()) {
@@ -539,6 +548,53 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
 
         }
         mSelectLabels.removeAll(temps);
+    }
+
+    /**
+     * 设置不可点击选项
+     *
+     * @param positions
+     */
+    public void setEnableItems(List<Integer> positions) {
+        for (int i:positions) {
+            TextView label = (TextView) getChildAt(i);
+            if(mEnableLabels.contains(i)) {
+                label.setEnabled(true);
+                mEnableLabels.remove(label);
+//                label.setTextColor(mTextColorList);
+            }else {
+                mEnableLabels.add(label);
+                label.setEnabled(false);
+//                int colorForState = mTextColorList.getColorForState(label.getDrawableState(), 0x00ff00);
+//                Class aClass = mTextColorList.getClass();
+//                int invoke[] = new int[0];
+//                int invoke2[][] = new int[0][];
+//                try {
+//                    Method method = aClass.getMethod("getColors");
+//                    invoke = (int[]) method.invoke(mTextColorList);
+//
+//                    Method method2 = aClass.getMethod("getStates");
+//                    invoke2 = (int[][]) method2.invoke(mTextColorList);
+//
+//                } catch (NoSuchMethodException e) {
+//                    e.printStackTrace();
+//                } catch (IllegalAccessException e) {
+//                    e.printStackTrace();
+//                } catch (InvocationTargetException e) {
+//                    e.printStackTrace();
+//                }
+//                /**
+//                 * int colorForState = mTextColorList.getColorForState(label.getDrawableState(), 0x00ff00);
+//                 * setTextColor(colorForState)
+//                 * 这种方式会有缓存，改变不了颜色 只能通过反射
+//                 */
+//                ColorStateList newlist = new ColorStateList(invoke2,invoke);
+//                label.setTextColor(newlist);
+
+            }
+
+
+        }
     }
 
     /**
@@ -787,16 +843,16 @@ public class LabelsView extends ViewGroup implements View.OnClickListener {
      * @param color
      */
     public void setLabelTextColor(ColorStateList color) {
-        mTextColor = color;
+        mTextColorList = color;
         int count = getChildCount();
         for (int i = 0; i < count; i++) {
             TextView label = (TextView) getChildAt(i);
-            label.setTextColor(mTextColor != null ? mTextColor : ColorStateList.valueOf(0xFF000000));
+            label.setTextColor(mTextColorList != null ? mTextColorList : ColorStateList.valueOf(0xFF000000));
         }
     }
 
     public ColorStateList getLabelTextColor() {
-        return mTextColor;
+        return mTextColorList;
     }
 
     /**
