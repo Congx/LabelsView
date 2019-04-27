@@ -63,7 +63,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
 
         // 新的模式，可选
-//        labelsView.setRowNum(4);
+        labelsView.setRowNum(3);
         List<Integer> enables = new ArrayList<>();
         enables.add(2);
         labelsView.setEnableItems(enables);
